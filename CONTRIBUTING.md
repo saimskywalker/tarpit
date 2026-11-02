@@ -73,3 +73,8 @@ Using AI tools is fine; please just be open about it.
 - Read, run and test every line you submit, and be ready to explain it in
   review.
 - PRs without the disclosure may be closed.
+
+## Stay in touch
+
+Don't forget to follow [@saimskywalker](https://github.com/saimskywalker) on
+GitHub to see new releases and other open-source projects as they come out.
