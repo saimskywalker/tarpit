@@ -103,6 +103,37 @@ void main() {
     );
   });
 
+  test('--test-function checks custom wrapper bodies', () async {
+    File(p.join(project.path, 'test', 'clean_test.dart')).writeAsStringSync('''
+void main() {
+  testScreen('stalls', (tester) async {
+    await Future<void>.delayed(const Duration(seconds: 1));
+  });
+  testGoldens('stalls too', (tester) async {
+    await Future<void>.delayed(const Duration(seconds: 1));
+  });
+  other('ignored', (tester) async {
+    await Future<void>.delayed(const Duration(seconds: 1));
+  });
+}
+''');
+    expect((await run(['test/clean_test.dart'])).code, exitClean);
+    expect((await run(['--help'])).out, contains('--test-function'));
+    final r = await run([
+      '--test-function',
+      'testScreen',
+      '--test-function',
+      'testGoldens',
+      'test/clean_test.dart',
+    ]);
+    expect(r.code, exitFindings);
+    expect(r.out, contains('fake-delay'));
+    expect(
+      r.out,
+      contains('2 findings (2 errors, 0 warnings, 0 info) in 1 file.'),
+    );
+  });
+
   test('explicit files need not end in _test.dart', () async {
     final r = await run(['test/helper.dart']);
     expect(r.code, exitFindings);

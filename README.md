@@ -46,8 +46,10 @@ tarpit has two parts:
 | `asset-string` | info | an awaited `AssetBundle.loadString` (uses an isolate at 50 KB and up) |
 | `bad-suppression` | warning | a `tarpit:allow` comment without a known rule id or a reason |
 
-Only `testWidgets` (and `tarpitWidgets`) bodies are checked, and anything
-inside `tester.runAsync(...)` is allowed. The same pattern inside a nested
+Only `testWidgets` and `tarpitWidgets` bodies are checked by default.
+`--test-function` adds other wrappers whose body is the second positional
+argument and a function literal. Anything inside `tester.runAsync(...)` is
+allowed. The same pattern inside a nested
 closure the test may not await, or in a file whose imports do not resolve,
 is reported as info rather than an error. [doc/rules.md](doc/rules.md) has
 the details, examples and what each rule deliberately leaves alone.
@@ -108,6 +110,7 @@ $ echo $?
 | `-f`, `--format text\|json\|sarif` | Output format (default `text`). |
 | `--fail-on error\|warning\|info` | Lowest severity that makes the exit code 1 (default `warning`). |
 | `-o`, `--output <file>` | Write the report to a file instead of stdout. |
+| `--test-function <name>` | Also check this function like `testWidgets` (repeatable). The body is the second positional argument and must be a function literal. |
 | `--rules` | List the rules. |
 | `--version`, `-h`, `--help` | |
 
@@ -211,8 +214,9 @@ What the watchdog cannot do:
 ## How it works
 
 The checker builds an `AnalysisContextCollection` over the files, gets each
-file's resolved AST from package:analyzer, finds `testWidgets` calls whose
-body is a function literal, and walks the body: awaited expressions are
+file's resolved AST from package:analyzer, finds `testWidgets`,
+`tarpitWidgets` and any `--test-function` calls whose body is a function
+literal, and walks the body: awaited expressions are
 classified by the library and class of the element they call (`dart:io`,
 `dart:isolate`, `dart:ui`, `package:flutter`), not by text. Without
 resolved types it only reports what it can recognise by name, as info.

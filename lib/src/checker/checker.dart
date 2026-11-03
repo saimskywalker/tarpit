@@ -70,7 +70,14 @@ class Checker {
   final String? sdkPath;
 
   /// Checks [paths]: Dart files, or directories searched for `*_test.dart`.
-  Future<CheckResult> check(List<String> paths) async {
+  ///
+  /// [testFunctions] names extra functions treated like `testWidgets`. The
+  /// body is still the second positional argument and must be a function
+  /// literal.
+  Future<CheckResult> check(
+    List<String> paths, {
+    Iterable<String> testFunctions = const [],
+  }) async {
     final files = collectFiles(paths);
     final findings = <Finding>[];
     final untyped = <String>[];
@@ -103,7 +110,15 @@ class Checker {
         unit = _parse(source, file);
       }
       if (!resolved) untyped.add(shown);
-      findings.addAll(checkUnit(unit, source, shown, resolved: resolved));
+      findings.addAll(
+        checkUnit(
+          unit,
+          source,
+          shown,
+          resolved: resolved,
+          testFunctions: testFunctions,
+        ),
+      );
     }
     findings.sort();
     return CheckResult(
@@ -156,11 +171,16 @@ class Checker {
 }
 
 /// Checks one parsed [unit] whose text is [source], reporting it as [path].
+///
+/// [testFunctions] names extra functions treated like `testWidgets`. The
+/// body is still the second positional argument and must be a function
+/// literal.
 List<Finding> checkUnit(
   CompilationUnit unit,
   String source,
   String path, {
   required bool resolved,
+  Iterable<String> testFunctions = const [],
 }) {
   final suppressions = Suppressions.of(unit, source);
   final lineInfo = unit.lineInfo;
@@ -178,7 +198,11 @@ List<Finding> checkUnit(
     );
   }
 
-  for (final hit in scanUnit(unit, resolved: resolved)) {
+  for (final hit in scanUnit(
+    unit,
+    resolved: resolved,
+    testFunctions: testFunctions,
+  )) {
     final finding = at(hit.rule, hit.severity, hit.offset, hit.message);
     if (!suppressions.covers(hit.rule.id, finding.line)) {
       findings.add(finding);
