@@ -98,8 +98,9 @@ const engineAsync = Rule(
   why:
       'Image.toByteData, Picture.toImage, RenderRepaintBoundary.toImage, '
       'Codec.getNextFrame, decodeImageFromList and precacheImage wait for '
-      'the engine. Inside FakeAsync they block the whole test isolate, so '
-      'not even a timeout or watchdog in the same isolate can fire.',
+      'the engine. The result arrives on the real event loop, outside '
+      'FakeAsync, so the test stops at its next await, or never finishes '
+      'after the body returns.',
   fix:
       'Wrap the call in `await tester.runAsync(() => ...)`. For goldens, '
       'prefer matchesGoldenFile, which handles this for you.',

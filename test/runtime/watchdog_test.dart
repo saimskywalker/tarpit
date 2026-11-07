@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,6 +37,16 @@ void main() {
     tarpitWidgets('awaits a completer nobody completes', (tester) async {
       await Completer<void>().future;
     }, stallAfter: _short);
+
+    // flutter/flutter#50783: the bytes arrive, but outside the FakeAsync
+    // zone, so the test hangs after its body returns.
+    tarpitWidgets('awaits engine work as its last step', (tester) async {
+      final recorder = ui.PictureRecorder();
+      Canvas(recorder).drawRect(const Rect.fromLTWH(0, 0, 1, 1), Paint());
+      final image = recorder.endRecording().toImageSync(1, 1);
+      // tarpit:allow engine-async the watchdog must catch this stall
+      await image.toByteData();
+    }, stallAfter: _short);
   });
 
   test('each stall failed its test with a TarpitStall', () {
@@ -43,6 +54,7 @@ void main() {
       'awaits a fake delay',
       'awaits real I/O',
       'awaits a completer nobody completes',
+      'awaits engine work as its last step',
     ]);
     for (final error in reported.values) {
       expect(error, isA<TarpitStall>());
@@ -52,6 +64,9 @@ void main() {
     expect(delay.realElapsed, greaterThanOrEqualTo(_short));
     expect(delay.fakeElapsed, Duration.zero);
     expect(delay.frames, greaterThanOrEqualTo(1));
+    expect(delay.bodyReturned, isFalse);
+    final engine = reported['awaits engine work as its last step']!;
+    expect((engine as TarpitStall).bodyReturned, isTrue);
   });
 
   tarpitWidgets('the next test runs normally', (tester) async {
@@ -104,5 +119,23 @@ void main() {
     expect(text, contains('2 ticker(s) still running'));
     expect(text, contains('frame requested, not pumped: yes'));
     expect(text, contains('dart run tarpit'));
+    expect(text, isNot(contains('The test body returned')));
+  });
+
+  test('TarpitStall says when the body had already returned', () {
+    const stall = TarpitStall(
+      description: 'saves a screenshot',
+      stallAfter: Duration(seconds: 30),
+      realElapsed: Duration(seconds: 30),
+      fakeElapsed: Duration.zero,
+      frames: 1,
+      transientCallbacks: 0,
+      frameScheduled: false,
+      bodyReturned: true,
+    );
+    final text = stall.toString();
+    expect(text, contains('The test body returned, but the test never'));
+    expect(text, contains('toByteData'));
+    expect(text, isNot(contains('Usual causes:')));
   });
 }

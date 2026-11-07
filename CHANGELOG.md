@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1
+
+- Watchdog: a test whose body returns while the rest of the test waits on
+  a microtask nothing flushes now fails with a `TarpitStall` instead of
+  hanging. Engine image work (`toByteData`, `toImage`, `getNextFrame`)
+  awaited outside `tester.runAsync` as the body's last await did this
+  ([flutter/flutter#50783](https://github.com/flutter/flutter/issues/50783)).
+  The watchdog now runs until the test's tear-down, and the report says
+  when the body had already returned (`TarpitStall.bodyReturned`).
+- Docs: engine image calls do not block the test isolate, and the watchdog
+  catches them; the README, doc/rules.md and the `engine-async` text said
+  otherwise.
+
 ## 0.1.0
 
 First release.

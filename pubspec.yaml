@@ -2,7 +2,7 @@ name: tarpit
 description: >-
   Find widget-test code that can hang in FakeAsync, and fail a stalled
   testWidgets fast. An analyzer-based CLI (text, JSON, SARIF) plus a watchdog.
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/saimskywalker/tarpit
 issue_tracker: https://github.com/saimskywalker/tarpit/issues
 topics:

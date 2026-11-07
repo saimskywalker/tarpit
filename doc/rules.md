@@ -115,7 +115,7 @@ final parsed = parseUsers(json);
 `decodeImageFromList` from Flutter.
 
 ```dart
-// Stalls, and blocks the whole test isolate.
+// Stalls: the bytes arrive outside the fake zone.
 final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
 
 // Works.
@@ -124,10 +124,16 @@ final bytes = await tester.runAsync(
 );
 ```
 
-Most of these do not just wait: in the test environment they block the
-isolate, so no timer in it can fire, including the
-[watchdog](../README.md#the-watchdog). This rule is the only early warning
-for them. `ui.instantiateImageCodec` itself completes and is not reported.
+These calls do not block the test isolate
+([flutter/flutter#50783](https://github.com/flutter/flutter/issues/50783)).
+The engine finishes the work and the result arrives, but on the real event
+loop, outside the FakeAsync zone. The test then stops at its next await, or,
+when the call was its last await, the body returns and the test never
+finishes. The [watchdog](../README.md#the-watchdog) fails both after
+`Tarpit.stallAfter`; this rule finds them before the test runs. Checked by
+`test/runtime/watchdog_e2e_test.dart` on Flutter 3.47.7 (macOS 27.2) and in
+CI on Flutter 3.44.0 and 3.47.7 (Ubuntu 24.04).
+`ui.instantiateImageCodec` itself completes and is not reported.
 
 ## blocking-sleep
 

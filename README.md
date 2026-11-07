@@ -175,6 +175,7 @@ The test body is awaiting a Future that nothing in the FakeAsync zone of testWid
 Usual causes:
   - Future.delayed, Future(...) or pumpEventQueue() awaited instead of tester.pump(duration)
   - file, socket or process I/O, compute() or Isolate.run() awaited outside tester.runAsync(...)
+  - engine image work (toByteData, toImage, getNextFrame) awaited outside tester.runAsync(...)
   - a Completer or stream that waits for a platform channel, plugin or service the test does not
 fake
 
@@ -198,11 +199,19 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
 
 or per test with `stallAfter:`.
 
+Engine image work awaited outside `tester.runAsync` (`toByteData`,
+`toImage`, `getNextFrame`;
+[flutter/flutter#50783](https://github.com/flutter/flutter/issues/50783))
+does not block the test isolate. The engine finishes and the bytes arrive,
+but on the real event loop, outside the fake zone, so the test stops at its
+next await, or never finishes after the body returns when that call was the
+last one. The watchdog fails both; the second says "The test body returned,
+but the test never finished". `test/runtime/watchdog_e2e_test.dart` checks
+this on Flutter 3.47.7 (macOS 27.2) and in CI on Flutter 3.44.0 and 3.47.7
+(Ubuntu 24.04).
+
 What the watchdog cannot do:
 
-- **Engine image calls** (`toByteData`, `toImage`, `getNextFrame`) block
-  the test isolate itself, so no timer in it can fire. `engine-async` in the
-  checker is the guard for those.
 - **Inside `tester.runAsync`**, the failure is reported on time, but
   flutter_test waits for the real work before it starts the next test.
 - `experimentalLeakTesting` is not passed through; use flutter_test's
@@ -221,7 +230,8 @@ The watchdog runs a real timer in the root zone next to the test's fake
 one. When the fake clock and the frame count stay still for the limit, it
 reports a `TarpitStall` into the test's zone, which flutter_test's binding
 handles like any other test failure, and drains the binding's pending
-microtasks so the test completes.
+microtasks so the test completes. It keeps watching until the test's
+tear-down, not just until the body returns.
 
 ## Contributing
 

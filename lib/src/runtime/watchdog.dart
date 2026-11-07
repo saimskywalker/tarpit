@@ -30,6 +30,7 @@ class TarpitStall implements Exception {
     required this.frames,
     required this.transientCallbacks,
     required this.frameScheduled,
+    this.bodyReturned = false,
   });
 
   /// The test's description.
@@ -53,6 +54,10 @@ class TarpitStall implements Exception {
   /// Whether a frame was requested but not pumped.
   final bool frameScheduled;
 
+  /// Whether the test body had already returned: the test was stuck in
+  /// flutter_test's own code after it, not in the body.
+  final bool bodyReturned;
+
   @override
   String toString() {
     String seconds(Duration d) =>
@@ -73,37 +78,53 @@ class TarpitStall implements Exception {
       ..writeln(
         '  frame requested, not pumped: ${frameScheduled ? 'yes' : 'no'}',
       )
-      ..writeln()
-      ..writeln(
-        'The test body is awaiting a Future that nothing in the FakeAsync '
-        'zone of testWidgets will complete. Usual causes:',
-      )
-      ..writeln(
-        '  - Future.delayed, Future(...) or pumpEventQueue() awaited instead '
-        'of tester.pump(duration)',
-      )
-      ..writeln(
-        '  - file, socket or process I/O, compute() or Isolate.run() awaited '
-        'outside tester.runAsync(...)',
-      )
-      ..writeln(
-        '  - a Completer or stream that waits for a platform channel, '
-        'plugin or service the test does not fake',
-      );
-    if (transientCallbacks > 0) {
-      out.writeln(
-        '  - $transientCallbacks ticker(s) still running, such as a spinner: '
-        'pumpAndSettle would not settle here either',
-      );
+      ..writeln();
+    if (bodyReturned) {
+      out
+        ..writeln(
+          'The test body returned, but the test never finished: its last '
+          'await completed outside the FakeAsync zone of testWidgets, so '
+          'nothing ran the code flutter_test has after the body. Usual '
+          'cause: engine image work (toByteData, toImage, getNextFrame) '
+          'awaited outside tester.runAsync(...).',
+        )
+        ..writeln();
+    } else {
+      out
+        ..writeln(
+          'The test body is awaiting a Future that nothing in the FakeAsync '
+          'zone of testWidgets will complete. Usual causes:',
+        )
+        ..writeln(
+          '  - Future.delayed, Future(...) or pumpEventQueue() awaited instead '
+          'of tester.pump(duration)',
+        )
+        ..writeln(
+          '  - file, socket or process I/O, compute() or Isolate.run() awaited '
+          'outside tester.runAsync(...)',
+        )
+        ..writeln(
+          '  - engine image work (toByteData, toImage, getNextFrame) '
+          'awaited outside tester.runAsync(...)',
+        )
+        ..writeln(
+          '  - a Completer or stream that waits for a platform channel, '
+          'plugin or service the test does not fake',
+        );
+      if (transientCallbacks > 0) {
+        out.writeln(
+          '  - $transientCallbacks ticker(s) still running, such as a '
+          'spinner: pumpAndSettle would not settle here either',
+        );
+      }
+      out.writeln();
     }
-    out
-      ..writeln()
-      ..writeln(
-        'Run `dart run tarpit` on the test file to find likely lines. If the '
-        'test was inside tester.runAsync, flutter_test still waits for that '
-        'real work before it moves on. If the test is just slow without '
-        'pumping, raise the limit with stallAfter: or Tarpit.stallAfter.',
-      );
+    out.writeln(
+      'Run `dart run tarpit` on the test file to find likely lines. If the '
+      'test was inside tester.runAsync, flutter_test still waits for that '
+      'real work before it moves on. If the test is just slow without '
+      'pumping, raise the limit with stallAfter: or Tarpit.stallAfter.',
+    );
     return out.toString().trimRight();
   }
 }
@@ -163,6 +184,7 @@ Future<void> watchTester(
   var lastFake = fakeStart;
   var lastFrames = framesAtStart;
   var lastProgress = Duration.zero;
+  var bodyReturned = false;
 
   // A real timer: timers created in the test zone are fake and would never
   // fire while the test is stuck.
@@ -192,6 +214,7 @@ Future<void> watchTester(
       frames: frames.count - framesAtStart,
       transientCallbacks: binding.transientCallbackCount,
       frameScheduled: binding.hasScheduledFrame,
+      bodyReturned: bodyReturned,
     );
     testZone.handleUncaughtError(stall, StackTrace.empty);
     // The binding completes the test from inside the FakeAsync zone; drain
@@ -203,10 +226,15 @@ Future<void> watchTester(
     }
   });
 
+  // Watch until the test's tear-down, not just until the body returns: when
+  // the body's last await completes outside the FakeAsync zone (engine image
+  // work does), flutter_test's code after the body waits on a microtask that
+  // nothing flushes, and the test hangs after the body has returned.
+  addTearDown(watchdog.cancel);
   try {
     await callback(tester);
   } finally {
-    watchdog.cancel();
+    bodyReturned = true;
   }
 }
 
