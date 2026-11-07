@@ -72,7 +72,8 @@ Using AI tools is fine; please just be open about it.
   plain descriptions are welcome; please don't paste generated text.
 - Read, run and test every line you submit, and be ready to explain it in
   review.
-- PRs without the disclosure may be closed.
+- If the disclosure is missing, a check adds a reminder to the PR. It does
+  not fail the PR, but a maintainer will ask about it before merging.
 
 ## Stay in touch
 
