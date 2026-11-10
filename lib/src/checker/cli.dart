@@ -37,6 +37,15 @@ ArgParser _parser() => ArgParser()
     valueHelp: 'file',
     help: 'Write the report to a file instead of stdout.',
   )
+  ..addMultiOption(
+    'test-function',
+    valueHelp: 'name',
+    splitCommas: false,
+    help:
+        'Also check bodies of this function, like testWidgets (repeatable). '
+        'The body is the second positional argument and must be a function '
+        'literal.',
+  )
   ..addFlag('rules', negatable: false, help: 'List the rules and exit.')
   ..addFlag('version', negatable: false, help: 'Print the version and exit.')
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
@@ -88,7 +97,10 @@ Future<int> runCli(
 
   CheckResult result;
   try {
-    result = await checker.check(paths);
+    result = await checker.check(
+      paths,
+      testFunctions: args.multiOption('test-function'),
+    );
   } on CheckerInputException catch (e) {
     stderrSink.writeln('tarpit: $e');
     return exitUsage;

@@ -27,8 +27,19 @@ class Hit {
 ///
 /// [resolved] says whether the unit carries type information. Without it,
 /// only patterns that can be recognised by name are reported, as info.
-List<Hit> scanUnit(CompilationUnit unit, {required bool resolved}) {
-  final finder = _WidgetTestFinder(resolved);
+///
+/// [testFunctions] names extra functions treated like `testWidgets`. The
+/// body is still the second positional argument and must be a function
+/// literal.
+List<Hit> scanUnit(
+  CompilationUnit unit, {
+  required bool resolved,
+  Iterable<String> testFunctions = const [],
+}) {
+  final finder = _WidgetTestFinder(resolved, {
+    ..._widgetTestFunctions,
+    ...testFunctions,
+  });
   unit.accept(finder);
   return finder.hits;
 }
@@ -62,9 +73,10 @@ const _indicators = {
 };
 
 class _WidgetTestFinder extends RecursiveAstVisitor<void> {
-  _WidgetTestFinder(this.resolved);
+  _WidgetTestFinder(this.resolved, this._testFunctions);
 
   final bool resolved;
+  final Set<String> _testFunctions;
   final hits = <Hit>[];
 
   @override
@@ -76,24 +88,24 @@ class _WidgetTestFinder extends RecursiveAstVisitor<void> {
     }
     _BodyScan(this, body).run();
   }
-}
 
-/// The body passed to `testWidgets(description, body)`, if it is a literal.
-FunctionExpression? _widgetTestBody(MethodInvocation node) {
-  if (!_widgetTestFunctions.contains(node.methodName.name)) return null;
-  // Allow an import prefix (`ft.testWidgets`), not a method on an object.
-  final target = node.target;
-  if (target != null) {
-    if (target is! SimpleIdentifier) return null;
-    final element = target.element;
-    if (element != null && element is! PrefixElement) return null;
+  /// The body passed to `name(description, body)`, if it is a literal.
+  FunctionExpression? _widgetTestBody(MethodInvocation node) {
+    if (!_testFunctions.contains(node.methodName.name)) return null;
+    // Allow an import prefix (`ft.testWidgets`), not a method on an object.
+    final target = node.target;
+    if (target != null) {
+      if (target is! SimpleIdentifier) return null;
+      final element = target.element;
+      if (element != null && element is! PrefixElement) return null;
+    }
+    final positional = node.argumentList.arguments
+        .whereType<Expression>()
+        .toList();
+    if (positional.length < 2) return null;
+    final body = positional[1];
+    return body is FunctionExpression ? body : null;
   }
-  final positional = node.argumentList.arguments
-      .whereType<Expression>()
-      .toList();
-  if (positional.length < 2) return null;
-  final body = positional[1];
-  return body is FunctionExpression ? body : null;
 }
 
 class _BodyScan extends RecursiveAstVisitor<void> {

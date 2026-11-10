@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `--test-function <name>` (repeatable): also check bodies of custom
+  `testWidgets` wrappers. The body is still the second positional argument
+  and must be a function literal.
+
 ## 0.1.1
 
 - Watchdog: a test whose body returns while the rest of the test waits on
