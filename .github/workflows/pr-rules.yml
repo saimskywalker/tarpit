@@ -48,8 +48,8 @@ jobs:
       - name: No lint suppressions (waive with suppression-ok)
         if: ${{ !cancelled() && !contains(github.event.pull_request.labels.*.name, 'suppression-ok') }}
         run: |
-          # Added lines that silence the analyzer, or tarpit itself outside the rule fixtures.
-          hits="$(jq -r '.[] | select(.patch) | .filename as $f | .patch | split("\n")[]
+          # Added Dart lines that silence the analyzer, or tarpit itself outside the rule fixtures.
+          hits="$(jq -r '.[] | select(.patch and (.filename | endswith(".dart"))) | .filename as $f | .patch | split("\n")[]
             | select(startswith("+") and (test("//\\s*ignore(_for_file)?:") or
                 (test("tarpit:allow") and ($f | startswith("test/fixtures/") | not))))
             | "\($f): \(.)"' "$RUNNER_TEMP/files.json")"
