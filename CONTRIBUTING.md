@@ -59,7 +59,13 @@ on both CI Flutter versions; it runs stalling tests in a real
 ## Pull requests
 
 Small, focused commits with clear messages. Run the commands above before
-pushing.
+pushing; every CI check must pass before a pull request can be merged.
+
+Every change to `lib/` or `bin/` needs a test change under `test/` (or
+`example/test/`), and a bug fix needs a test that fails without the fix. The
+`tests required` check fails the pull request otherwise. If a change really
+needs no test, say why in the description; a maintainer can then add the
+`no-tests-needed` label.
 
 ## AI-assisted contributions
 
@@ -72,7 +78,11 @@ Using AI tools is fine; please just be open about it.
   It shows us what you understood about the change. Please don't paste
   generated text.
 - Read, run and test every line you submit, and be ready to explain it in
-  review.
+  review. If you don't understand what a line does, don't submit it.
+- Keep the change focused. Agents like to add unrelated "improvements",
+  long comments and dead code; remove them before you open the pull request.
+- Pull requests that are raw, unreviewed agent output will be closed.
+- If you use an agent, point it at [AGENTS.md](AGENTS.md).
 - If the disclosure is missing, a check adds a reminder to the PR. It does
   not fail the PR, but a maintainer will ask about it before merging.
 
