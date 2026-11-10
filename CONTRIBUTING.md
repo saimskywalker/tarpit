@@ -58,14 +58,29 @@ on both CI Flutter versions; it runs stalling tests in a real
 
 ## Pull requests
 
-Small, focused commits with clear messages. Run the commands above before
-pushing; every CI check must pass before a pull request can be merged.
+Small, focused commits with clear messages, in English. Run the commands
+above before pushing; every CI check must pass before a pull request can be
+merged. The `PR rules` check enforces these:
 
-Every change to `lib/` or `bin/` needs a test change under `test/` (or
-`example/test/`), and a bug fix needs a test that fails without the fix. The
-`tests required` check fails the pull request otherwise. If a change really
-needs no test, say why in the description; a maintainer can then add the
-`no-tests-needed` label.
+- **Issue first.** Open an issue and wait until a maintainer labels it
+  `accepted`, then write `Closes #N` in the pull request.
+- **Tests.** Every change to `lib/` or `bin/` needs a test change under
+  `test/` (or `example/test/`). A bug fix needs a test that fails without the
+  fix.
+- **Small.** At most 400 changed lines, one issue per pull request.
+- **No suppressions.** No `// ignore:`, no `tarpit:allow` outside
+  `test/fixtures/`, no changes to `analysis_options.yaml`. Fix the finding.
+- **At most 2 open pull requests** per person.
+
+If a rule really does not fit your change, say why in the description. A
+maintainer can waive it with a label (`no-tests-needed`, `large-change` or
+`suppression-ok`).
+
+## Legal notice
+
+By submitting a contribution you confirm that you wrote it, that you have the
+right to submit it, and that it may be distributed under the project license
+(see [LICENSE](LICENSE)).
 
 ## AI-assisted contributions
 

@@ -6,7 +6,8 @@
 
 - [ ] `dart format --output=none --set-exit-if-changed .` and `dart analyze --fatal-infos` are clean
 - [ ] `flutter test` passes
-- [ ] Changes to `lib/` or `bin/` come with a test (a check enforces this)
+- [ ] Closes an issue labelled `accepted`; at most 400 changed lines; no `// ignore:` (checked)
+- [ ] Changes to `lib/` or `bin/` come with a test (checked)
 - [ ] If this fixes a bug: there is a test that fails without the fix
 - [ ] New or changed rule: a fixture with `// expect:` lines and a `safe uses` test, a `doc/rules.md` section and a README rule table row
 - [ ] User-visible change: `CHANGELOG.md` entry
