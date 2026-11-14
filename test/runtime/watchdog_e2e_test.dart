@@ -47,6 +47,19 @@ void main() {
     expect(run.outcomes['runs after the stalls'], 'success');
     expect(run.elapsed, lessThan(const Duration(minutes: 2)));
   });
+
+  test('a binding set up in flutter_test_config.dart watches a plain '
+      'flutter_test file, wrappers included', () async {
+    final run = await _flutterTest(p.join('suite', 'plain_import.dart'));
+
+    expect(run.exitCode, 1, reason: run.stderr);
+    for (final name in ['stalls on a fake delay', 'stalls inside a wrapper']) {
+      expect(run.outcomes[name], isNot('success'));
+      expect(run.output[name], contains('"$name" made no progress for 0.5s'));
+    }
+    expect(run.outcomes['runs after the stalls'], 'success');
+    expect(run.elapsed, lessThan(const Duration(minutes: 2)));
+  });
 }
 
 class _Run {
