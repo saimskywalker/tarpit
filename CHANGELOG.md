@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - `--test-function <name>` (repeatable): also check bodies of custom
   `testWidgets` wrappers. The body is still the second positional argument
-  and must be a function literal.
+  and must be a function literal. Thanks @nahuel007ng
+  ([#5](https://github.com/saimskywalker/tarpit/pull/5)).
 
 ## 0.1.1
 
