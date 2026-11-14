@@ -175,9 +175,9 @@ Future<void> watchTester(
   stallAfter: stallAfter,
 );
 
-/// Runs [body] on [binding] with the watchdog. Not exported yet: a binding
-/// set up in `flutter_test_config.dart` can call it from `runTest` to watch
-/// every `testWidgets`, whatever the test file imports.
+/// Runs [body] on [binding] with the watchdog. A watch already running for
+/// the same test, such as the one from `TarpitWatchdogBinding`, stops and
+/// this one takes over, so a test is never reported twice.
 Future<void> watchBody(
   TestWidgetsFlutterBinding binding,
   String description,
@@ -185,6 +185,7 @@ Future<void> watchBody(
   Duration? stallAfter,
 }) async {
   final limit = stallAfter ?? Tarpit.stallAfter;
+  _stopRunningWatch[binding]?.call();
   if (limit <= Duration.zero) return body();
 
   final frames = _FrameCounter.of(binding);
@@ -244,13 +245,19 @@ Future<void> watchBody(
   // the body's last await completes outside the FakeAsync zone (engine image
   // work does), flutter_test's code after the body waits on a microtask that
   // nothing flushes, and the test hangs after the body has returned.
-  addTearDown(watchdog.cancel);
+  _stopRunningWatch[binding] = watchdog.cancel;
+  addTearDown(() {
+    watchdog.cancel();
+    _stopRunningWatch[binding] = null;
+  });
   try {
     await body();
   } finally {
     bodyReturned = true;
   }
 }
+
+final _stopRunningWatch = Expando<void Function()>();
 
 Duration _tick(Duration limit) {
   final tenth = limit ~/ 10;
