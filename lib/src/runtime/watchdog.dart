@@ -168,11 +168,25 @@ Future<void> watchTester(
   String description,
   WidgetTesterCallback callback, {
   Duration? stallAfter,
+}) => watchBody(
+  tester.binding,
+  description,
+  () => callback(tester),
+  stallAfter: stallAfter,
+);
+
+/// Runs [body] on [binding] with the watchdog. Not exported yet: a binding
+/// set up in `flutter_test_config.dart` can call it from `runTest` to watch
+/// every `testWidgets`, whatever the test file imports.
+Future<void> watchBody(
+  TestWidgetsFlutterBinding binding,
+  String description,
+  Future<void> Function() body, {
+  Duration? stallAfter,
 }) async {
   final limit = stallAfter ?? Tarpit.stallAfter;
-  if (limit <= Duration.zero) return callback(tester);
+  if (limit <= Duration.zero) return body();
 
-  final binding = tester.binding;
   final frames = _FrameCounter.of(binding);
   // Errors reported in this zone reach the binding's test error handler,
   // which fails the test and completes it.
@@ -232,7 +246,7 @@ Future<void> watchTester(
   // nothing flushes, and the test hangs after the body has returned.
   addTearDown(watchdog.cancel);
   try {
-    await callback(tester);
+    await body();
   } finally {
     bodyReturned = true;
   }
