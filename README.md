@@ -202,6 +202,37 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
 
 or per test with `stallAfter:`.
 
+### Watch the whole suite
+
+To watch every `testWidgets` without changing any imports, install the
+tarpit binding in `test/flutter_test_config.dart`:
+
+```dart
+import 'dart:async';
+
+import 'package:tarpit/tarpit.dart';
+
+Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  TarpitBinding.ensureInitialized(stallAfter: const Duration(seconds: 20));
+  await testMain();
+}
+```
+
+This covers wrappers that call `testWidgets`, such as `testGoldens`, too.
+An isolate has only one binding, so if your suite already creates its own,
+add the watchdog to it with the mixin instead:
+
+```dart
+class AppTestBinding extends AutomatedTestWidgetsFlutterBinding
+    with TarpitWatchdogBinding {}
+```
+
+A file that also imports `package:tarpit/flutter_test.dart` is still
+watched once per test, and its `stallAfter:` arguments still apply. The
+binding does not know when the test body returns, so the "The test body
+returned" hint needs the per-file import. Only the automated binding is
+covered, not the live one (`flutter run` on a test file).
+
 Engine image work awaited outside `tester.runAsync` (`toByteData`,
 `toImage`, `getNextFrame`;
 [flutter/flutter#50783](https://github.com/flutter/flutter/issues/50783))

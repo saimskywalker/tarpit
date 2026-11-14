@@ -14,6 +14,7 @@ import 'package:meta/meta.dart';
 import 'src/runtime/watchdog.dart';
 
 export 'package:flutter_test/flutter_test.dart' hide testWidgets;
+export 'src/runtime/binding.dart' show TarpitBinding, TarpitWatchdogBinding;
 export 'src/runtime/watchdog.dart'
     show Tarpit, TarpitStall, tarpitWidgets, watchTester;
 

@@ -47,6 +47,51 @@ void main() {
     expect(run.outcomes['runs after the stalls'], 'success');
     expect(run.elapsed, lessThan(const Duration(minutes: 2)));
   });
+
+  test('TarpitBinding set up in flutter_test_config.dart watches a plain '
+      'flutter_test file, wrappers included', () async {
+    final run = await _flutterTest(p.join('suite', 'plain_import.dart'));
+
+    expect(run.exitCode, 1, reason: run.stderr);
+    for (final name in ['stalls on a fake delay', 'stalls inside a wrapper']) {
+      expect(run.outcomes[name], isNot('success'));
+      expect(run.output[name], contains('"$name" made no progress for 0.5s'));
+    }
+    expect(run.outcomes['runs after the stalls'], 'success');
+    expect(run.elapsed, lessThan(const Duration(minutes: 2)));
+  });
+
+  test('a test under both the binding and the tarpit import is watched once, '
+      'with its own stallAfter', () async {
+    final run = await _flutterTest(p.join('suite', 'double_watch.dart'));
+
+    expect(run.exitCode, 1, reason: run.stderr);
+    const both = 'stalls under both watches';
+    const own = 'stalls with its own limit';
+    expect(run.outcomes[both], isNot('success'));
+    expect('made no progress'.allMatches(run.output[both]!), hasLength(1));
+    expect(run.outcomes[own], isNot('success'));
+    expect('made no progress'.allMatches(run.output[own]!), hasLength(1));
+    expect(run.output[own], contains('"$own" made no progress for 1.0s'));
+    expect(run.outcomes['runs after the stalls'], 'success');
+    expect(run.elapsed, lessThan(const Duration(minutes: 2)));
+  });
+
+  test(
+    'a custom binding with TarpitWatchdogBinding watches the suite',
+    () async {
+      final run = await _flutterTest(
+        p.join('custom_binding', 'plain_import.dart'),
+      );
+
+      expect(run.exitCode, 1, reason: run.stderr);
+      const name = 'stalls on a fake delay';
+      expect(run.outcomes[name], isNot('success'));
+      expect(run.output[name], contains('"$name" made no progress for 0.5s'));
+      expect(run.outcomes['runs after the stall'], 'success');
+      expect(run.elapsed, lessThan(const Duration(minutes: 2)));
+    },
+  );
 }
 
 class _Run {
